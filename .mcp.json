@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "wsl.exe",
+            "args": [
+                "/usr/bin/php8.5",
+                "/home/user/test/whist/whist-card-game-v2-backend/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
