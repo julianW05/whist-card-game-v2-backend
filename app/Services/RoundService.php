@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\RoundStatus;
 use App\Enums\Suit;
+use App\Events\RoundStarted;
 use App\Models\Game;
 use App\Models\Round;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,8 @@ class RoundService
             if (! $isFinal) {
                 $this->deckService->deal($round);
             }
+
+            event(new RoundStarted($game));
 
             return $round;
         });
