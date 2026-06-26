@@ -180,11 +180,24 @@ class GameService
     /**
      * @return Collection<int, Game>
      */
-    public function publicGames(): Collection
+    public function publicGames(User $user): Collection
     {
         return Game::query()
             ->where('is_public', true)
             ->where('status', GameStatus::Lobby)
+            ->whereDoesntHave('players', fn ($query) => $query->where('user_id', $user->id))
+            ->withCount('players')
+            ->latest()
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Game>
+     */
+    public function gamesForUser(User $user): Collection
+    {
+        return Game::query()
+            ->whereHas('players', fn ($query) => $query->where('user_id', $user->id))
             ->withCount('players')
             ->latest()
             ->get();

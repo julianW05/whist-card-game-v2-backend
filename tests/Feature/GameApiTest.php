@@ -59,6 +59,39 @@ class GameApiTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_public_games_exclude_games_the_user_is_in(): void
+    {
+        $host = User::factory()->create();
+        $joined = $this->hostedGame($host, isPublic: true);
+        $this->hostedGame($host, isPublic: true);
+
+        Sanctum::actingAs($user = User::factory()->create());
+        $this->gameService->joinGame($joined, $user);
+
+        $this->getJson('/api/games')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_a_user_can_list_their_games(): void
+    {
+        $user = User::factory()->create();
+        $this->hostedGame($user, isPublic: false);
+
+        $host = User::factory()->create();
+        $active = $this->hostedGame($host, isPublic: true);
+        $this->gameService->joinGame($active, $user);
+        $this->gameService->startGame($active, $host);
+
+        $this->hostedGame(User::factory()->create(), isPublic: true);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/games/mine')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_a_user_can_join_by_code(): void
     {
         $game = $this->hostedGame(User::factory()->create());

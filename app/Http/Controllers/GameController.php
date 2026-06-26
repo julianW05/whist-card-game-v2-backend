@@ -22,9 +22,14 @@ class GameController extends Controller
         private GameStateService $stateService,
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return GameResource::collection($this->gameService->publicGames());
+        return GameResource::collection($this->gameService->publicGames($request->user()));
+    }
+
+    public function mine(Request $request): AnonymousResourceCollection
+    {
+        return GameResource::collection($this->gameService->gamesForUser($request->user()));
     }
 
     public function store(StoreGameRequest $request): JsonResponse

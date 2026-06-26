@@ -10,6 +10,7 @@ Route::middleware(['auth:sanctum'])->group(function (): void {
     Route::get('/user', fn (Request $request) => $request->user());
 
     Route::get('/games', [GameController::class, 'index']);
+    Route::get('/games/mine', [GameController::class, 'mine']);
     Route::post('/games', [GameController::class, 'store']);
     Route::post('/games/{game:code}/join', [GameController::class, 'join']);
     Route::post('/games/{game}/start', [GameController::class, 'start']);
