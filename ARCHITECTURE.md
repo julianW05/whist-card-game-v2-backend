@@ -37,7 +37,7 @@ Enums: `GameStatus` (lobby/active/finished), `RoundStatus` (bidding/playing/comp
 
 | Service | Responsibility |
 |---|---|
-| `GameService` | create / join (by code) / leave / kick / start game; 6-char codes; seat assignment + resequencing; public-lobby list. Min 2, max 6 players. |
+| `GameService` | create / join (by code) / leave / kick / start game; reconnect sync (`markReconnected`); 6-char codes; seat assignment + resequencing; public-lobby list. Min 2, max 6 players. |
 | `RoundService` | pyramid round numbering, trump rotation, dealer rotation; `startNextRound()` creates the round, deals (except blind final round), fires `RoundStarted`. |
 | `DeckService` | `generateForRound` (shuffle 48), `deal`, `getHand`, `playCard`. |
 | `BiddingService` | bid order (left of dealer first, dealer last), range 0..trick_count, **hook rule** (dealer can't make total bids == trick_count); on last bid deals the blind final round, opens trick 1, transitions round to `playing`. |
@@ -64,6 +64,7 @@ for lobby actions); JSON is wrapped in a top-level `data` key.
 | POST | `/api/games/{game}/kick/{user}` | `kick` | host only |
 | POST | `/api/games/{game}/leave` | `leave` | lobby only; 204 |
 | GET | `/api/games/{game}/state` | `state` | full sync; participants only (403 otherwise) |
+| POST | `/api/games/{game}/sync` | `sync` | reconnect: fires `PlayerReconnected`, returns full state; participants only |
 | GET | `/api/games/{game}/hand` | `hand` | the auth user's own hand only |
 | POST | `/api/rounds/{round}/bid` | `RoundController@bid` | body: `amount` |
 | POST | `/api/rounds/{round}/start-next` | `startNext` | host only; round must be complete |
@@ -100,7 +101,7 @@ inside services at the exact domain moment). `broadcastAs()` = class basename.
 | `TrickComplete` | `TrickService` | trick won |
 | `RoundComplete` | `TrickService` | final trick scored |
 | `GameComplete` | `TrickService` | final round done (game → finished) |
-| `PlayerReconnected` | (not auto-wired) | carries reconnecting user; needs a trigger endpoint |
+| `PlayerReconnected` | `GameService::markReconnected` | a participant hits `POST /games/{game}/sync` on reconnect; payload adds `reconnected_user_id` |
 
 ### Broadcast payload
 `broadcastWith()` returns `GameStateService::build($game, null)` rendered through
@@ -134,7 +135,6 @@ PHPUnit feature tests, one per service plus `GameApiTest`, `ResourceTest`, `Broa
 
 ## Not yet built / TODO
 
-- `PlayerReconnected` trigger (e.g. a `POST /api/games/{game}/sync` endpoint on reconnect).
 - A `GamePolicy` (host/participant checks are currently inline).
 - Reverb credentials in `.env` to run `php artisan reverb:start` locally.
 - The Nuxt frontend (`../whist-card-game-v2-frontend`).

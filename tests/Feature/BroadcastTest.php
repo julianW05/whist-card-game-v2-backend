@@ -12,6 +12,7 @@ use App\Events\BidPlaced;
 use App\Events\CardPlayed;
 use App\Events\GameComplete;
 use App\Events\GameStarted;
+use App\Events\PlayerReconnected;
 use App\Events\RoundComplete;
 use App\Events\RoundStarted;
 use App\Events\TrickComplete;
@@ -153,6 +154,29 @@ class BroadcastTest extends TestCase
         Event::assertDispatched(RoundComplete::class);
         Event::assertDispatched(GameComplete::class);
         $this->assertSame(GameStatus::Finished, $game->fresh()->status);
+    }
+
+    public function test_a_reconnecting_player_broadcasts_player_reconnected(): void
+    {
+        [$game, $host] = $this->startedGame();
+
+        Event::fake([PlayerReconnected::class]);
+
+        $this->games->markReconnected($game, $host);
+
+        Event::assertDispatched(PlayerReconnected::class, function (PlayerReconnected $event) use ($game, $host): bool {
+            return $event->game->is($game) && $event->user->is($host);
+        });
+    }
+
+    public function test_player_reconnected_carries_the_reconnecting_user_id(): void
+    {
+        [$game, $host] = $this->startedGame();
+
+        $payload = (new PlayerReconnected($game, $host))->broadcastWith();
+
+        $this->assertSame($host->id, $payload['reconnected_user_id']);
+        $this->assertSame([], $payload['hand']);
     }
 
     public function test_events_broadcast_on_the_presence_channel_without_leaking_hands(): void

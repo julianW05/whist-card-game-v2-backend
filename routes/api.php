@@ -16,6 +16,7 @@ Route::middleware(['auth:sanctum'])->group(function (): void {
     Route::post('/games/{game}/kick/{user}', [GameController::class, 'kick']);
     Route::post('/games/{game}/leave', [GameController::class, 'leave']);
     Route::get('/games/{game}/state', [GameController::class, 'state']);
+    Route::post('/games/{game}/sync', [GameController::class, 'sync']);
     Route::get('/games/{game}/hand', [GameController::class, 'hand']);
 
     Route::post('/rounds/{round}/bid', [RoundController::class, 'bid']);

@@ -75,6 +75,15 @@ class GameController extends Controller
         return GameStateResource::make($this->stateService->build($game, $request->user()));
     }
 
+    public function sync(Request $request, Game $game): GameStateResource
+    {
+        $this->authorizeParticipant($game, $request->user());
+
+        $this->gameService->markReconnected($game, $request->user());
+
+        return GameStateResource::make($this->stateService->build($game, $request->user()));
+    }
+
     public function hand(Request $request, Game $game): AnonymousResourceCollection
     {
         $this->authorizeParticipant($game, $request->user());

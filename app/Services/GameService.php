@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\GameStatus;
 use App\Events\GameStarted;
+use App\Events\PlayerReconnected;
 use App\Models\Game;
 use App\Models\GamePlayer;
 use App\Models\Round;
@@ -169,6 +170,11 @@ class GameService
 
             return $this->roundService->startNextRound($game);
         });
+    }
+
+    public function markReconnected(Game $game, User $user): void
+    {
+        event(new PlayerReconnected($game, $user));
     }
 
     /**

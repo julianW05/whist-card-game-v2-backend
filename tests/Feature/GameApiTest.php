@@ -133,6 +133,29 @@ class GameApiTest extends TestCase
         $this->getJson("/api/games/{$game->id}/state")->assertForbidden();
     }
 
+    public function test_a_participant_can_sync_on_reconnect(): void
+    {
+        $host = User::factory()->create();
+        $game = $this->hostedGame($host);
+        $this->gameService->joinGame($game, User::factory()->create());
+
+        Sanctum::actingAs($host);
+        $this->postJson("/api/games/{$game->id}/start")->assertOk();
+
+        $this->postJson("/api/games/{$game->id}/sync")
+            ->assertOk()
+            ->assertJsonPath('data.game.id', $game->id);
+    }
+
+    public function test_non_participants_cannot_sync(): void
+    {
+        $game = $this->hostedGame(User::factory()->create());
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson("/api/games/{$game->id}/sync")->assertForbidden();
+    }
+
     public function test_a_full_round_can_be_played_through_the_api(): void
     {
         $host = User::factory()->create();
