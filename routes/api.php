@@ -24,3 +24,5 @@ Route::middleware(['auth:sanctum'])->group(function (): void {
 
     Route::post('/tricks/{trick}/play', [TrickController::class, 'play']);
 });
+
+require __DIR__.'/auth.php';

@@ -136,5 +136,4 @@ PHPUnit feature tests, one per service plus `GameApiTest`, `ResourceTest`, `Broa
 ## Not yet built / TODO
 
 - A `GamePolicy` (host/participant checks are currently inline).
-- Reverb credentials in `.env` to run `php artisan reverb:start` locally.
 - The Nuxt frontend (`../whist-card-game-v2-frontend`).
