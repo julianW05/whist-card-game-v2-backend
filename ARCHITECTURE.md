@@ -110,8 +110,15 @@ inside services at the exact domain moment). `broadcastAs()` = class basename.
 
 State payload shape:
 ```
-{ game, round|null, trick|null, hand: [], scoreboard }
+{ game, round|null, trick|null, hand: [], scoreboard,
+  turn: { current_bidder_id, forbidden_bid, current_player_id },
+  tricks_won: { <user_id>: count } }
 ```
+`turn` is the read-side view of whose move it is (so the frontend renders turn order
+without recomputing it): `current_bidder_id`/`forbidden_bid` are set only while the round is
+`bidding`, `current_player_id` only while a trick is open. `tricks_won` counts completed tricks
+per winner in the current round (live bid-vs-actual during play, before scoring writes
+`bids.tricks_won`). Both are assembled by `GameStateService::build`.
 
 ---
 
@@ -136,4 +143,9 @@ PHPUnit feature tests, one per service plus `GameApiTest`, `ResourceTest`, `Broa
 ## Not yet built / TODO
 
 - A `GamePolicy` (host/participant checks are currently inline).
-- The Nuxt frontend (`../whist-card-game-v2-frontend`).
+- The Nuxt frontend (`../whist-card-game-v2-frontend`): lobby and the full in-game flow
+  (bidding / trick / scoreboard) are built; remaining polish (card animations, explicit
+  reconnect `/sync` call) is open.
+- Two pre-existing test failures unrelated to game flow: `GameServiceTest` calls
+  `publicGames()` with no args (signature is now `publicGames(User $user)`), and the stock
+  Breeze `Auth` tests fail under the Sanctum SPA setup.

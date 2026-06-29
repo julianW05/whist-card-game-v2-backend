@@ -21,6 +21,12 @@ class GameStateResource extends JsonResource
             'trick' => $state['trick'] ? new TrickResource($state['trick']) : null,
             'hand' => HandResource::collection($state['hand'] ?? new Collection),
             'scoreboard' => new ScoreboardResource($state['game']),
+            'turn' => $state['turn'] ?? [
+                'current_bidder_id' => null,
+                'forbidden_bid' => null,
+                'current_player_id' => null,
+            ],
+            'tricks_won' => (object) ($state['tricks_won'] ?? []),
         ];
     }
 }

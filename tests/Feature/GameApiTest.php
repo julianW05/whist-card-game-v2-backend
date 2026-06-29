@@ -214,6 +214,46 @@ class GameApiTest extends TestCase
 
         $state->assertJsonPath('data.round.status', 'complete')
             ->assertJsonPath('data.trick', null);
+
+        $this->assertSame(1, array_sum((array) $state->json('data.tricks_won')));
+    }
+
+    public function test_state_exposes_the_current_bidder_during_bidding(): void
+    {
+        $host = User::factory()->create();
+        $game = $this->hostedGame($host);
+        $member = User::factory()->create();
+        $this->gameService->joinGame($game, $member);
+
+        Sanctum::actingAs($host);
+        $this->postJson("/api/games/{$game->id}/start")->assertOk();
+
+        $expectedBidder = $game->players()->where('seat_index', ($game->fresh()->dealer_index + 1) % 2)->value('user_id');
+
+        $this->actingAsJson($member)->getJson("/api/games/{$game->id}/state")
+            ->assertJsonPath('data.turn.current_bidder_id', $expectedBidder)
+            ->assertJsonPath('data.turn.current_player_id', null);
+    }
+
+    public function test_state_exposes_the_current_player_during_a_trick(): void
+    {
+        $host = User::factory()->create();
+        $game = $this->hostedGame($host);
+        $member = User::factory()->create();
+        $this->gameService->joinGame($game, $member);
+
+        Sanctum::actingAs($host);
+        $roundId = $this->postJson("/api/games/{$game->id}/start")->json('data.round.id');
+
+        $this->actingAsJson($member)->postJson("/api/rounds/{$roundId}/bid", ['amount' => 0])->assertOk();
+        $this->actingAsJson($host)->postJson("/api/rounds/{$roundId}/bid", ['amount' => 0])->assertOk();
+
+        $leadSeat = ($game->fresh()->dealer_index + 1) % 2;
+        $expectedPlayer = $game->players()->where('seat_index', $leadSeat)->value('user_id');
+
+        $this->actingAsJson($host)->getJson("/api/games/{$game->id}/state")
+            ->assertJsonPath('data.turn.current_bidder_id', null)
+            ->assertJsonPath('data.turn.current_player_id', $expectedPlayer);
     }
 
     public function test_you_cannot_bid_out_of_turn_through_the_api(): void

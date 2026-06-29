@@ -225,4 +225,39 @@ class ResourceTest extends TestCase
         $this->assertNull($data['trick']);
         $this->assertSame([], $data['hand']);
     }
+
+    public function test_game_state_resource_exposes_the_turn_block(): void
+    {
+        $game = Game::factory()->create();
+        GamePlayer::factory()->create(['game_id' => $game->id, 'user_id' => User::factory()->create()->id, 'seat_index' => 0]);
+
+        $data = $this->arr(new GameStateResource([
+            'game' => $game->load('players.user', 'rounds.bids'),
+            'round' => null,
+            'trick' => null,
+            'hand' => null,
+            'turn' => ['current_bidder_id' => 7, 'forbidden_bid' => 2, 'current_player_id' => null],
+        ]));
+
+        $this->assertSame(7, $data['turn']['current_bidder_id']);
+        $this->assertSame(2, $data['turn']['forbidden_bid']);
+        $this->assertNull($data['turn']['current_player_id']);
+    }
+
+    public function test_game_state_resource_defaults_turn_to_nulls_when_absent(): void
+    {
+        $game = Game::factory()->create();
+        GamePlayer::factory()->create(['game_id' => $game->id, 'user_id' => User::factory()->create()->id, 'seat_index' => 0]);
+
+        $data = $this->arr(new GameStateResource([
+            'game' => $game->load('players.user', 'rounds.bids'),
+            'round' => null,
+            'trick' => null,
+            'hand' => null,
+        ]));
+
+        $this->assertNull($data['turn']['current_bidder_id']);
+        $this->assertNull($data['turn']['forbidden_bid']);
+        $this->assertNull($data['turn']['current_player_id']);
+    }
 }
