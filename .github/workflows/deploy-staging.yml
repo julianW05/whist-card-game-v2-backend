@@ -1,0 +1,62 @@
+name: "Deploy staging"
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+jobs:
+
+  deploy-staging:
+    name: "Deploy staging"
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v6
+
+      - name: "Setup PHP"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: "Setup SSH key"
+        run: |
+          mkdir "${HOME}/.ssh/"
+          chmod 700 "${HOME}/.ssh/"
+          echo "${{ secrets.SSH_KEY }}" > "${HOME}/.ssh/id_rsa"
+          chmod 600 "${HOME}/.ssh/id_rsa"
+
+      - name: "Install Dependencies"
+        run: |
+          composer install
+          npm install
+
+      - name: "Build Vite Assets"
+        run: |
+          npm run build
+
+      - name: "Upload repository"
+        run: |
+          rsync -e "ssh -o StrictHostKeyChecking=no" -r --exclude '.env' --delete-after . "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.DEPLOY_DIRECTORY }}"
+
+      - name: "Deploy"
+        run: |
+          ssh -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'bash -lc "
+            set -e
+            cd \"${{ vars.DEPLOY_DIRECTORY }}\"
+
+            php -v
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            php artisan migrate --force
+
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+          "'
