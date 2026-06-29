@@ -20,10 +20,6 @@ jobs:
         with:
           php-version: '8.5'
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
       - name: "Setup SSH key"
         run: |
           mkdir "${HOME}/.ssh/"
@@ -34,11 +30,6 @@ jobs:
       - name: "Install Dependencies"
         run: |
           composer install
-          npm install
-
-      - name: "Build Vite Assets"
-        run: |
-          npm run build
 
       - name: "Upload repository"
         run: |
