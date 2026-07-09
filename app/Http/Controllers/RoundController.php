@@ -27,6 +27,23 @@ class RoundController extends Controller
         return GameStateResource::make($this->stateService->build($round->game, $request->user()));
     }
 
+    public function revealScoreboard(Request $request, Round $round): GameStateResource
+    {
+        $game = $round->game;
+
+        abort_unless($game->host_id === $request->user()->id, 403);
+
+        if ($round->status !== RoundStatus::Complete) {
+            throw ValidationException::withMessages([
+                'round' => 'The round must be complete before opening the scoreboard.',
+            ]);
+        }
+
+        $this->roundService->revealScoreboard($round);
+
+        return GameStateResource::make($this->stateService->build($game->fresh(), $request->user()));
+    }
+
     public function startNext(Request $request, Round $round): GameStateResource
     {
         $game = $round->game;

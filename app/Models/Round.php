@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['game_id', 'round_number', 'trick_count', 'trump_suit', 'is_final', 'status'])]
+#[Fillable(['game_id', 'round_number', 'trick_count', 'trump_suit', 'is_final', 'status', 'scoreboard_revealed'])]
 class Round extends Model
 {
     /** @use HasFactory<RoundFactory> */
@@ -23,6 +23,7 @@ class Round extends Model
             'trump_suit' => Suit::class,
             'is_final' => 'boolean',
             'status' => RoundStatus::class,
+            'scoreboard_revealed' => 'boolean',
         ];
     }
 

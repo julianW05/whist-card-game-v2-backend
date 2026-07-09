@@ -20,6 +20,7 @@ class RoundResource extends JsonResource
             'trump_symbol' => $this->trump_suit->symbol(),
             'is_final' => $this->is_final,
             'status' => $this->status->value,
+            'scoreboard_revealed' => (bool) $this->scoreboard_revealed,
             'bids' => BidResource::collection($this->whenLoaded('bids')),
         ];
     }

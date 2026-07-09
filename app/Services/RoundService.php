@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\RoundStatus;
 use App\Enums\Suit;
 use App\Events\RoundStarted;
+use App\Events\ScoreboardRevealed;
 use App\Models\Game;
 use App\Models\Round;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,15 @@ class RoundService
             event(new RoundStarted($game));
 
             return $round;
+        });
+    }
+
+    public function revealScoreboard(Round $round): void
+    {
+        DB::transaction(function () use ($round): void {
+            $round->update(['scoreboard_revealed' => true]);
+
+            event(new ScoreboardRevealed($round->game));
         });
     }
 }

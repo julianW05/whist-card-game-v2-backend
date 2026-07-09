@@ -27,6 +27,7 @@ use App\Services\DeckService;
 use App\Services\GameService;
 use App\Services\TrickService;
 use Database\Seeders\CardSeeder;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
@@ -193,6 +194,13 @@ class BroadcastTest extends TestCase
         $this->assertSame($game->id, $payload['game']['id']);
         $this->assertArrayHasKey('scoreboard', $payload);
         $this->assertSame([], $payload['hand']);
+    }
+
+    public function test_game_events_broadcast_synchronously(): void
+    {
+        [$game] = $this->startedGame();
+
+        $this->assertInstanceOf(ShouldBroadcastNow::class, new GameStarted($game));
     }
 
     public function test_presence_channel_only_authorizes_participants(): void

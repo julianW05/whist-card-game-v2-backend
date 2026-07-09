@@ -67,6 +67,7 @@ for lobby actions); JSON is wrapped in a top-level `data` key.
 | POST | `/api/games/{game}/sync` | `sync` | reconnect: fires `PlayerReconnected`, returns full state; participants only |
 | GET | `/api/games/{game}/hand` | `hand` | the auth user's own hand only |
 | POST | `/api/rounds/{round}/bid` | `RoundController@bid` | body: `amount` |
+| POST | `/api/rounds/{round}/reveal-scoreboard` | `revealScoreboard` | host only; round must be complete; flips `scoreboard_revealed` so all clients leave the trick table for the scoreboard |
 | POST | `/api/rounds/{round}/start-next` | `startNext` | host only; round must be complete |
 | POST | `/api/tricks/{trick}/play` | `TrickController@play` | body: `game_deck_id` |
 
@@ -87,9 +88,10 @@ Default broadcaster is `reverb`. Events broadcast on the **presence channel**
 `presence-game.{game_id}` (auth in `routes/channels.php`, `sanctum` guard — only participants,
 returns `{id, name}` for the roster).
 
-Events (`app/Events/`) extend `GameEvent`, which implements `ShouldBroadcast` +
-`ShouldDispatchAfterCommit` (so they only fire after the DB transaction commits — fired from
-inside services at the exact domain moment). `broadcastAs()` = class basename.
+Events (`app/Events/`) extend `GameEvent`, which implements `ShouldBroadcastNow` +
+`ShouldDispatchAfterCommit` (so they broadcast synchronously right after the DB transaction
+commits — no queue worker required — fired from inside services at the exact domain moment).
+`broadcastAs()` = class basename.
 
 | Event | Fired from | When |
 |---|---|---|
@@ -100,6 +102,7 @@ inside services at the exact domain moment). `broadcastAs()` = class basename.
 | `CardPlayed` | `TrickService::playCard` | each card |
 | `TrickComplete` | `TrickService` | trick won |
 | `RoundComplete` | `TrickService` | final trick scored |
+| `ScoreboardRevealed` | `RoundService::revealScoreboard` | host opens the scoreboard after a round (moves everyone off the trick table) |
 | `GameComplete` | `TrickService` | final round done (game → finished) |
 | `PlayerReconnected` | `GameService::markReconnected` | a participant hits `POST /games/{game}/sync` on reconnect; payload adds `reconnected_user_id` |
 
@@ -110,15 +113,20 @@ inside services at the exact domain moment). `broadcastAs()` = class basename.
 
 State payload shape:
 ```
-{ game, round|null, trick|null, hand: [], scoreboard,
+{ game, round|null, trick|null, last_trick|null, hand: [], scoreboard,
   turn: { current_bidder_id, forbidden_bid, current_player_id },
   tricks_won: { <user_id>: count } }
 ```
 `turn` is the read-side view of whose move it is (so the frontend renders turn order
 without recomputing it): `current_bidder_id`/`forbidden_bid` are set only while the round is
-`bidding`, `current_player_id` only while a trick is open. `tricks_won` counts completed tricks
-per winner in the current round (live bid-vs-actual during play, before scoring writes
-`bids.tricks_won`). Both are assembled by `GameStateService::build`.
+`bidding`, `current_player_id` only while a trick is open. `trick` is the currently **open**
+trick (the one plays target, and whose `lead_suit` drives follow-suit) — it goes empty the
+instant a trick completes and the next opens, and is `null` once the round is complete.
+`last_trick` is the most recently completed trick (cards + `winner_id`) so the client keeps the
+table on screen until the next trick's first card lands, and holds the final trick during round
+completion. `tricks_won` counts completed tricks per winner in the current round (live
+bid-vs-actual during play, before scoring writes `bids.tricks_won`). All assembled by
+`GameStateService::build`.
 
 ---
 

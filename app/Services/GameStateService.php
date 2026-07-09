@@ -18,7 +18,7 @@ class GameStateService
     ) {}
 
     /**
-     * @return array{game: Game, round: ?Round, trick: ?Trick, hand: Collection, turn: array{current_bidder_id: ?int, forbidden_bid: ?int, current_player_id: ?int}, tricks_won: array<int, int>}
+     * @return array{game: Game, round: ?Round, trick: ?Trick, last_trick: ?Trick, hand: Collection, turn: array{current_bidder_id: ?int, forbidden_bid: ?int, current_player_id: ?int}, tricks_won: array<int, int>}
      */
     public function build(Game $game, ?User $user): array
     {
@@ -27,6 +27,11 @@ class GameStateService
         $trick = $round?->status === RoundStatus::Playing
             ? $this->trickService->currentTrick($round)
             : null;
+
+        $lastTrick = $round?->tricks()
+            ->whereNotNull('winner_id')
+            ->orderByDesc('trick_number')
+            ->first();
 
         $hand = $round !== null && $user !== null
             ? $this->deckService->getHand($round, $user)
@@ -56,11 +61,13 @@ class GameStateService
         $game->load(['players.user', 'rounds.bids']);
         $round?->load('bids');
         $trick?->load('cards.gameDeck.card');
+        $lastTrick?->load('cards.gameDeck.card');
 
         return [
             'game' => $game,
             'round' => $round,
             'trick' => $trick,
+            'last_trick' => $lastTrick,
             'hand' => $hand,
             'turn' => $turn,
             'tricks_won' => $tricksWon,

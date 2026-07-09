@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\DeckCardStatus;
 use App\Enums\RoundStatus;
 use App\Enums\Suit;
+use App\Events\ScoreboardRevealed;
 use App\Models\Game;
 use App\Models\GamePlayer;
+use App\Models\Round;
 use App\Models\User;
 use App\Services\RoundService;
 use Database\Seeders\CardSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class RoundServiceTest extends TestCase
@@ -117,5 +120,22 @@ class RoundServiceTest extends TestCase
         $this->assertSame(12, $round->trick_count);
         $this->assertSame(48, $round->deck()->count());
         $this->assertSame(0, $round->deck()->where('status', DeckCardStatus::InHand)->count());
+    }
+
+    public function test_reveal_scoreboard_flags_the_round_and_broadcasts(): void
+    {
+        $game = $this->makeGame(2);
+        $round = Round::factory()->create([
+            'game_id' => $game->id,
+            'status' => RoundStatus::Complete,
+            'scoreboard_revealed' => false,
+        ]);
+
+        Event::fake([ScoreboardRevealed::class]);
+
+        $this->roundService->revealScoreboard($round);
+
+        $this->assertTrue($round->fresh()->scoreboard_revealed);
+        Event::assertDispatched(ScoreboardRevealed::class);
     }
 }

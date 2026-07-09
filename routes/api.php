@@ -21,6 +21,7 @@ Route::middleware(['auth:sanctum'])->group(function (): void {
     Route::get('/games/{game}/hand', [GameController::class, 'hand']);
 
     Route::post('/rounds/{round}/bid', [RoundController::class, 'bid']);
+    Route::post('/rounds/{round}/reveal-scoreboard', [RoundController::class, 'revealScoreboard']);
     Route::post('/rounds/{round}/start-next', [RoundController::class, 'startNext']);
 
     Route::post('/tricks/{trick}/play', [TrickController::class, 'play']);

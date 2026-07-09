@@ -19,6 +19,7 @@ class GameStateResource extends JsonResource
             'game' => new GameResource($state['game']),
             'round' => $state['round'] ? new RoundResource($state['round']) : null,
             'trick' => $state['trick'] ? new TrickResource($state['trick']) : null,
+            'last_trick' => isset($state['last_trick']) && $state['last_trick'] ? new TrickResource($state['last_trick']) : null,
             'hand' => HandResource::collection($state['hand'] ?? new Collection),
             'scoreboard' => new ScoreboardResource($state['game']),
             'turn' => $state['turn'] ?? [
