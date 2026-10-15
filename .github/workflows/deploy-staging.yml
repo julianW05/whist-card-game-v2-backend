@@ -58,9 +58,8 @@ jobs:
             php8.5 artisan migrate --force
 
             php8.5 artisan optimize:clear
-            php8.5 artisan config:cache
-            php8.5 artisan route:cache
-            php8.5 artisan view:cache
+            php8.5 artisan optimize
 
-            php8.5 artisan horizon:terminate
+            php8.5 artisan queue:restart
+            php8.5 artisan reverb:restart
           "'
