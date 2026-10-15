@@ -27,7 +27,9 @@ use App\Services\DeckService;
 use App\Services\GameService;
 use App\Services\TrickService;
 use Database\Seeders\CardSeeder;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
@@ -177,10 +179,10 @@ class BroadcastTest extends TestCase
         $payload = (new PlayerReconnected($game, $host))->broadcastWith();
 
         $this->assertSame($host->id, $payload['reconnected_user_id']);
-        $this->assertSame([], $payload['hand']);
+        $this->assertSame($game->id, $payload['game_id']);
     }
 
-    public function test_events_broadcast_on_the_presence_channel_without_leaking_hands(): void
+    public function test_events_broadcast_on_the_presence_channel_with_only_the_game_id(): void
     {
         [$game] = $this->startedGame();
 
@@ -189,18 +191,18 @@ class BroadcastTest extends TestCase
         $this->assertSame('presence-game.'.$game->id, $event->broadcastOn()->name);
         $this->assertSame('GameStarted', $event->broadcastAs());
 
-        $payload = $event->broadcastWith();
-
-        $this->assertSame($game->id, $payload['game']['id']);
-        $this->assertArrayHasKey('scoreboard', $payload);
-        $this->assertSame([], $payload['hand']);
+        $this->assertSame(['game_id' => $game->id], $event->broadcastWith());
     }
 
-    public function test_game_events_broadcast_synchronously(): void
+    public function test_game_events_broadcast_through_the_queue_after_commit(): void
     {
         [$game] = $this->startedGame();
 
-        $this->assertInstanceOf(ShouldBroadcastNow::class, new GameStarted($game));
+        $event = new GameStarted($game);
+
+        $this->assertInstanceOf(ShouldBroadcast::class, $event);
+        $this->assertNotInstanceOf(ShouldBroadcastNow::class, $event);
+        $this->assertInstanceOf(ShouldDispatchAfterCommit::class, $event);
     }
 
     public function test_presence_channel_only_authorizes_participants(): void

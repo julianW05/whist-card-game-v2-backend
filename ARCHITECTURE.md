@@ -88,9 +88,10 @@ Default broadcaster is `reverb`. Events broadcast on the **presence channel**
 `presence-game.{game_id}` (auth in `routes/channels.php`, `sanctum` guard — only participants,
 returns `{id, name}` for the roster).
 
-Events (`app/Events/`) extend `GameEvent`, which implements `ShouldBroadcastNow` +
-`ShouldDispatchAfterCommit` (so they broadcast synchronously right after the DB transaction
-commits — no queue worker required — fired from inside services at the exact domain moment).
+Events (`app/Events/`) extend `GameEvent`, which implements `ShouldBroadcast` +
+`ShouldDispatchAfterCommit` (queued right after the DB transaction commits, fired from inside
+services at the exact domain moment). A queue worker is required in production; a Reverb
+outage no longer fails the HTTP request, the broadcast job retries (5 tries, 3s backoff).
 `broadcastAs()` = class basename.
 
 | Event | Fired from | When |
@@ -107,11 +108,11 @@ commits — no queue worker required — fired from inside services at the exact
 | `PlayerReconnected` | `GameService::markReconnected` | a participant hits `POST /games/{game}/sync` on reconnect; payload adds `reconnected_user_id` |
 
 ### Broadcast payload
-`broadcastWith()` returns `GameStateService::build($game, null)` rendered through
-`GameStateResource` — identical shape to the `/state` endpoint's `data`, **but `hand` is always
-`[]`** (no private hands on the shared channel). Each client merges its own hand from `/hand`.
+`broadcastWith()` returns only `{ game_id }` (`PlayerReconnected` adds `reconnected_user_id`).
+Events are signals: clients refetch `/state` on every event, so payload order and size don't
+matter and private hands can never leak over the shared channel.
 
-State payload shape:
+The `/state` payload shape:
 ```
 { game, round|null, trick|null, last_trick|null, hand: [], scoreboard,
   turn: { current_bidder_id, forbidden_bid, current_player_id },
