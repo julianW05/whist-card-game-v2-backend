@@ -18,6 +18,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CardSeeder::class);
 
+        if (! app()->isLocal()) {
+            return;
+        }
+
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'admin@wesselswebworks.nl',
