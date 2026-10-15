@@ -33,7 +33,12 @@ jobs:
 
       - name: "Upload repository"
         run: |
-          rsync -e "ssh -o StrictHostKeyChecking=no" -r --exclude '.env' --delete-after . "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.DEPLOY_DIRECTORY }}"
+          rsync -az -e "ssh -o StrictHostKeyChecking=no" --delete-after \
+            --exclude '/.env' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --filter 'P /storage/**' \
+            . "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.DEPLOY_DIRECTORY }}"
 
       - name: "Deploy"
         run: |
@@ -41,13 +46,11 @@ jobs:
             set -e
             cd \"${{ vars.DEPLOY_DIRECTORY }}\"
 
-            php -v
-            composer install --no-dev --optimize-autoloader --no-interaction
+            php8.5 artisan migrate --force
 
-            php artisan migrate --force
+            php8.5 artisan optimize:clear
+            php8.5 artisan optimize
 
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            php8.5 artisan queue:restart
+            php8.5 artisan reverb:restart
           "'
