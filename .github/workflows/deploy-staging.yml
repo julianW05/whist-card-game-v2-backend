@@ -20,6 +20,10 @@ jobs:
         with:
           php-version: '8.5'
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: "Setup SSH key"
         run: |
           mkdir "${HOME}/.ssh/"
@@ -29,28 +33,34 @@ jobs:
 
       - name: "Install Dependencies"
         run: |
-          composer install --no-dev --optimize-autoloader --no-interaction
+          composer install
+          npm install
+
+      - name: "Build Vite Assets"
+        run: |
+          npm run build
 
       - name: "Upload repository"
         run: |
           rsync -az -e "ssh -o StrictHostKeyChecking=no" --delete-after \
-            --exclude '/.env' \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --filter 'P /storage/**' \
+            --exclude '.env' --exclude '.git' --exclude 'node_modules' \
+            --exclude 'storage' --exclude 'public/storage' \
             . "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ vars.DEPLOY_DIRECTORY }}"
-
       - name: "Deploy"
         run: |
           ssh -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'bash -lc "
             set -e
             cd \"${{ vars.DEPLOY_DIRECTORY }}\"
 
+            php8.5 -v
+            php8.5 /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
+
             php8.5 artisan migrate --force
 
             php8.5 artisan optimize:clear
-            php8.5 artisan optimize
+            php8.5 artisan config:cache
+            php8.5 artisan route:cache
+            php8.5 artisan view:cache
 
-            php8.5 artisan queue:restart
-            php8.5 artisan reverb:restart
+            php8.5 artisan horizon:terminate
           "'
